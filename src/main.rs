@@ -107,6 +107,9 @@ fn main() {
         if win.is_key_down(Key::A) {
             camera.position.x -= camera_speed * dt;
         }
+        if win.is_key_down(Key::C) {
+            win.take_screenshot("screenshot.png");
+        }
         win.begin_drawing();
         win.clear_background(background);
         win.begin_mode3d(camera);
