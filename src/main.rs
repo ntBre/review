@@ -1,7 +1,7 @@
 use std::{error::Error, fs::read_to_string, path::Path, str::FromStr};
 
 use donkey::{colors::color, keys::Key, vector3, Window};
-use raylib_sys::Camera3D;
+use raylib_sys::{Camera3D, Vector3};
 
 const NATOMS: usize = 13;
 
@@ -36,6 +36,12 @@ struct Atom {
     w: u8,
 }
 
+impl Atom {
+    fn as_vec(&self) -> Vector3 {
+        vector3!(self.x, self.y, self.z)
+    }
+}
+
 impl FromStr for Atom {
     type Err = Box<dyn Error>;
 
@@ -56,6 +62,7 @@ impl FromStr for Atom {
 
 struct Molecule {
     atoms: Vec<Atom>,
+    bonds: Vec<(usize, usize)>,
 }
 
 fn load_xyz(path: impl AsRef<Path>) -> Molecule {
@@ -69,7 +76,22 @@ fn load_xyz(path: impl AsRef<Path>) -> Molecule {
         }
         atoms.push(line.parse().unwrap());
     }
-    Molecule { atoms }
+
+    let mut bonds = Vec::new();
+    for i in 0..atoms.len() {
+        for j in i + 1..atoms.len() {
+            let Atom { x: xi, y: yi, z: zi, .. } = atoms[i];
+            let Atom { x: xj, y: yj, z: zj, .. } = atoms[j];
+            let dist =
+                ((xi - xj).powi(2) + (yi - yj).powi(2) + (zi - zj).powi(2))
+                    .sqrt();
+            if dist < 3.0 {
+                bonds.push((i, j));
+            }
+        }
+    }
+
+    Molecule { atoms, bonds }
 }
 
 fn make_window() -> Window {
@@ -115,11 +137,21 @@ fn main() {
         win.begin_mode3d(camera);
         for atom in &mol.atoms {
             win.draw_sphere(
-                vector3!(atom.x, atom.y, atom.z),
+                atom.as_vec(),
                 RADII[atom.w as usize] / 2.0,
                 COLORS[atom.w as usize],
             );
         }
+
+        for (i, j) in &mol.bonds {
+            win.draw_cylinder(
+                mol.atoms[*i].as_vec(),
+                mol.atoms[*j].as_vec(),
+                0.1,
+                donkey::colors::LIGHTGRAY,
+            );
+        }
+
         win.end_mode3d();
         win.end_drawing();
     }
