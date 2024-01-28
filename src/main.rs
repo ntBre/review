@@ -1,6 +1,6 @@
 use std::{error::Error, fs::read_to_string, path::Path, str::FromStr};
 
-use donkey::{colors::color, keys::Key, vector3, Window};
+use donkey::{colors::color, vector3, Window};
 use raylib_sys::{Camera3D, Vector3};
 
 const NATOMS: usize = 13;
@@ -103,7 +103,7 @@ fn make_window() -> Window {
 
 fn main() {
     let win = make_window();
-    let camera_speed = 2.0;
+    win.set_target_fps(30);
     let mut camera = Camera3D {
         position: vector3!(0.0, 0.0, -5.0),
         target: vector3!(0.0, 0.0, 0.0),
@@ -116,25 +116,12 @@ fn main() {
     let mol = load_xyz("testfiles/acetaldehyde.xyz");
 
     while !win.should_close() {
-        let dt = win.get_frame_time();
-        if win.is_key_down(Key::W) {
-            camera.position.z += camera_speed * dt;
-        }
-        if win.is_key_down(Key::S) {
-            camera.position.z -= camera_speed * dt;
-        }
-        if win.is_key_down(Key::D) {
-            camera.position.x += camera_speed * dt;
-        }
-        if win.is_key_down(Key::A) {
-            camera.position.x -= camera_speed * dt;
-        }
-        if win.is_key_down(Key::C) {
-            win.take_screenshot("screenshot.png");
-        }
         win.begin_drawing();
         win.clear_background(background);
         win.begin_mode3d(camera);
+
+        win.update_camera(&mut camera, donkey::CameraMode::ThirdPerson);
+
         for atom in &mol.atoms {
             win.draw_sphere(
                 atom.as_vec(),
